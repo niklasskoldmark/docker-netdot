@@ -45,4 +45,16 @@ RUN apt-get update && apt-get install -y \
     rrdtool \
     snmp
 
+WORKDIR /srv
+
+RUN wget http://se.archive.ubuntu.com/ubuntu/pool/multiverse/n/netdisco-mibs-installer/netdisco-mibs-installer_1.5_all.deb
+
+RUN dpkg -i netdisco-mibs-installer_1.5_all.deb
+
+RUN wget http://netdot.uoregon.edu/pub/dists/netdot-1.0.7.tar.gz
+
+RUN tar xzvf netdot-1.0.7.tar.gz
+
+
+
 EXPOSE 80
