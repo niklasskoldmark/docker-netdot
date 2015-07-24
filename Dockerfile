@@ -62,11 +62,8 @@ RUN cd /srv && \
     curl -L "http://netdot.uoregon.edu/pub/dists/netdot-1.0.7.tar.gz" |tar zxvf - && \
     cd netdot* && \
     cp etc/Default.conf etc/Site.conf && \
-    sed -i -e "s/SNMP_MIBS_PATH.*/SNMP_MIBS_PATH  => \'\/usr\/share\/netdisco\/mibs\',/g" etc/Site.conf && \
-    make install APACHEUSER=www-data APACHEGROUP=www-data && \
-    ln -s /usr/local/netdot/etc/netdot_apache24_local.conf /etc/apache2/sites-available/netdot_apache24_local.conf && \
-    a2ensite netdot_apache24_local.conf
-
+    sed -i -e "s/SNMP_MIBS_PATH.*/SNMP_MIBS_PATH  => \'\/usr\/share\/netdisco\/mibs\',/g" etc/Site.conf
+    
 COPY ["setup.sh", "/setup.sh"]
 
 #RUN /setup.sh && rm /setup.sh
