@@ -44,18 +44,20 @@ RUN apt-get update && apt-get install -y \
     libxml-simple-perl \
     rrdtool \
     snmp \
-    wget
+    mysql-client \
+    curl
 
-WORKDIR /srv
+RUN cd /srv && \
+    curl -L "http://downloads.sourceforge.net/project/netdisco/netdisco-mibs/latest-snapshot/netdisco-mibs-snapshot.tar.gz?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fnetdisco%2Ffiles%2Fnetdisco-mibs%2Flatest-snapshot%2F&ts=1393793276&use_mirror=heanet" |tar zxvf - && \
+    mkdir -p /usr/local/netdisco/mibs/ && \
+    cp -R netdisco-mibs/* /usr/local/netdisco/mibs/
 
-RUN wget http://se.archive.ubuntu.com/ubuntu/pool/multiverse/n/netdisco-mibs-installer/netdisco-mibs-installer_1.5_all.deb
-
-RUN dpkg -i netdisco-mibs-installer_1.5_all.deb
-
-RUN wget http://netdot.uoregon.edu/pub/dists/netdot-1.0.7.tar.gz
-
-RUN tar xzvf netdot-1.0.7.tar.gz
-
+RUN cd /srv && \
+    curl -L "http://netdot.uoregon.edu/pub/dists/netdot-1.0.7.tar.gz" |tar zxvf - && \
+    cd netdot* && \
+    cp etc/Default.conf etc/Site.conf && \
+    make install APACHEUSER=www-data APACHEGROUP=www-data && \
+    ln -s /usr/local/netdot/etc/netdot_apache24_local.conf /etc/apache2/sites-available/netdot_apache24_local.conf
 
 
 EXPOSE 80
