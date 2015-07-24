@@ -2,7 +2,8 @@ FROM debian:8.1
 
 MAINTAINER Niklas Skoldmark <niklas.skoldmark@gmail.com>
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && \
+    apt-get install -y \
     apache2 \
     build-essential \
     graphviz \
@@ -49,21 +50,29 @@ RUN apt-get update && apt-get install -y \
 
 RUN cd /srv && \
     curl -L "http://downloads.sourceforge.net/project/netdisco/netdisco-mibs/latest-snapshot/netdisco-mibs-snapshot.tar.gz?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fnetdisco%2Ffiles%2Fnetdisco-mibs%2Flatest-snapshot%2F&ts=1393793276&use_mirror=heanet" |tar zxvf - && \
-    mkdir -p /usr/local/netdisco/mibs/ && \
-    cp -R netdisco-mibs/* /usr/local/netdisco/mibs/ && \
+    mkdir -p /usr/local/netdisco/mibs/
+
+RUN cp -R /srv/netdisco-mibs/* /usr/local/netdisco/mibs/ && \
     echo 'deb http://ftp.se.debian.org/debian jessie main non-free' >> /etc/apt/sources.list && \
     apt-get update && apt-get install -y snmp-mibs-downloader && \
     sed -i -e "s/mibs :.*/#mibs :/g" /etc/snmp/snmp.conf && \
-    echo 'mibdirs +/usr/local/netdisco/mibs/' >> /usr/share/snmp/snmp.conf && \
-    sed -i -e "s/SNMP_MIBS_PATH.*/SNMP_MIBS_PATH  => \'\/usr\/share\/netdisco\/mibs\',/g" /usr/local/netdot/etc/Site.conf
+    echo 'mibdirs +/usr/local/netdisco/mibs/' >> /usr/share/snmp/snmp.conf
 
 RUN cd /srv && \
     curl -L "http://netdot.uoregon.edu/pub/dists/netdot-1.0.7.tar.gz" |tar zxvf - && \
     cd netdot* && \
     cp etc/Default.conf etc/Site.conf && \
+    sed -i -e "s/SNMP_MIBS_PATH.*/SNMP_MIBS_PATH  => \'\/usr\/share\/netdisco\/mibs\',/g" etc/Site.conf && \
     make install APACHEUSER=www-data APACHEGROUP=www-data && \
     ln -s /usr/local/netdot/etc/netdot_apache24_local.conf /etc/apache2/sites-available/netdot_apache24_local.conf && \
-    a2ensite netdot_apache24_local.conf && \
-    service apache2 start
+    a2ensite netdot_apache24_local.conf
+
+COPY ["setup.sh", "/setup.sh"]
+
+#RUN /setup.sh && rm /setup.sh
+
+COPY ["entrypoint.sh", "/entrypoint.sh"]
+
+#ENTRYPOINT ["/entrypoint.sh"]
 
 EXPOSE 80
