@@ -43,7 +43,8 @@ RUN apt-get update && apt-get install -y \
     liburi-perl \
     libxml-simple-perl \
     rrdtool \
-    snmp
+    snmp \
+    wget
 
 WORKDIR /srv
 
