@@ -66,7 +66,7 @@ RUN cd /srv && \
 
 COPY ["setup.sh", "/setup.sh"]
 
-COPY ["oui.txt", "/srv/netdot*/"]
+COPY ["oui.txt", "/srv/netdot*/bin/"]
 
 #RUN /setup.sh && rm /setup.sh
 
