@@ -65,7 +65,7 @@ RUN cd /srv && \
     sed -i -e "s/DEVICE_NAMING_METHOD_ORDER.*/DEVICE_NAMING_METHOD_ORDER  => [ \'sysname\', \'snmp_target\'],/g" etc/Site.conf && \
     make install APACHEUSER=www-data APACHEGROUP=www-data && \
     ln -s /usr/local/netdot/etc/netdot_apache24_local.conf /etc/apache2/sites-available/netdot_apache24_local.conf && \
-    a2ensite netdot_apache24_local.conf &&
+    a2ensite netdot_apache24_local.conf
 
 COPY ["setup.sh", "/setup.sh"]
 
