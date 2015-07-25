@@ -73,7 +73,7 @@ COPY ["oui.txt", "/srv/netdot*/bin/"]
 
 COPY ["entrypoint.sh", "/entrypoint.sh"]
 
-CMD /setup.sh
+# CMD /setup.sh
 
 #ENTRYPOINT ["/entrypoint.sh"]
 
