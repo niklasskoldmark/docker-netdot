@@ -14,7 +14,7 @@ sed -i -e "s/^DB_NETDOT_HOST.*/DB_NETDOT_HOST  => \'%\',/g" etc/Site.conf
 
 make installdb
 echo "GRANT ALL ON netdot.* TO netdot_user@'%' IDENTIFIED BY 'netdot_pass' WITH GRANT OPTION; FLUSH PRIVILEGES" | mysql -uadmin -h$DB_PORT_3306_TCP_ADDR -pmysql-server
-touch /netdotinitdone
+#touch /netdotinitdone
 
 sed -i -e "s/^DB_DBA_PASSWORD.*/DB_DBA_PASSWORD  => \'$MYSQL_ENV_MYSQL_ROOT_PASSWORD',/g" /usr/local/netdot/etc/Site.conf
 sed -i -e "s/^DB_HOST.*/DB_HOST  => \'$MYSQL_PORT_3306_TCP_ADDR\',/g" /usr/local/netdot/etc/Site.conf
