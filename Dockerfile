@@ -81,17 +81,21 @@ RUN cd /srv && \
     mv /srv/oui.txt bin/
 
 # Backup initial /usr/local/netdot/etc/
-RUN mkdir /usr/local/netdot/etcbck/ && \
+RUN mkdir /usr/local/netdot/etcbck && \
     cp -R /usr/local/netdot/etc/* /usr/local/netdot/etcbck/
 
-#COPY ["setup.sh", "/srv/setup.sh"]
+# Backup initial /usr/local/netdisco/mibs
+RUN mkdir /usr/local/netdisco/mibsbck && \
+    cp -R /usr/local/netdisco/mibs/* /usr/local/netdisco/mibsbck/
+
+# Backup initial /usr/local/netdot/export/cacti
+RUN mkdir /usr/local/netdot/export/cactibck && \
+    cp -R /usr/local/netdot/export/cacti/* /usr/local/netdot/export/cactibck/
+
+EXPOSE 80
+
+VOLUME /usr/local/netdot/etc /usr/local/netdot/export/bind /usr/local/netdot/export/cacti /usr/local/netdot/export/dhcpd /usr/local/netdot/export/docs /usr/local/netdot/export/ethers /usr/local/netdot/export/nagios /usr/local/netdot/export/rancid /usr/local/netdot/export/smokeping /usr/local/netdot/export/sysmon /usr/local/netdisco/mibs
 
 COPY ["entrypoint.sh", "/srv/entrypoint.sh"]
 
-VOLUME /usr/local/netdot/etc /usr/local/netdot/export/bind /usr/local/netdot/export/cacti /usr/local/netdot/export/dhcpd /usr/local/netdot/export/docs /usr/local/netdot/export/ethers /usr/local/netdot/export/nagios /usr/local/netdot/export/rancid /usr/local/netdot/export/smokeping /usr/local/netdot/export/sysmon
-
-#CMD /srv/setup.sh
-
-#ENTRYPOINT ["/srv/entrypoint.sh"]
-
-EXPOSE 80
+ENTRYPOINT ["/srv/entrypoint.sh"]

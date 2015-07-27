@@ -1,10 +1,9 @@
 #!/bin/sh
 #################################################################
 # Set variables
-
 netdotpath="/usr/local/netdot"
 configfile="$netdotpath/etc/Site.conf"
-configfile="/srv/netdot-1.0.7/etc/Site.conf"
+#configfile="/srv/netdot-1.0.7/etc/Site.conf"
 
 #################################################################
 # Setup postfix
@@ -14,6 +13,22 @@ postconf -e relayhost="$POSTFIX_RELAY_PORT_25_TCP_ADDR"
 # If /usr/local/netdot/etc/ is empty (mounted volume), copy the initial netdot configs
 [ ! "$(ls -A /usr/local/netdot/etc/ )" ] && \
 cp -R /usr/local/netdot/etcbck/* /usr/local/netdot/etc/
+
+#################################################################
+# If /usr/local/netdisco/mibs/ is empty (mounted volume), copy the initial mibs
+[ ! "$(ls -A /usr/local/netdisco/mibs/ )" ] && \
+cp -R /usr/local/netdisco/mibsbck/* /usr/local/netdisco/mibs/
+
+#################################################################
+# If /usr/local/netdot/export/cacti/ is empty (mounted volume), copy the initial cacti configs
+[ ! "$(ls -A /usr/local/netdot/export/cacti/ )" ] && \
+cp -R /usr/local/netdot/export/cactibck/* /usr/local/netdot/export/cacti/
+
+#################################################################
+# Fix access
+chmod -R 777 /usr/local/netdisco/mibs/ && \
+chmod -R 777 /usr/local/netdot/etc/ && \
+chmod -R 777 /usr/local/netdot/export
 
 #################################################################
 # Fix /usr/local/netdot/etc/Site.conf
@@ -66,7 +81,6 @@ sed -i -e "s/^DHCPD_EXPORT_DIR\s.*/DHCPD_EXPORT_DIR => \'\/usr\/local\/netdot\/e
 #  - Smokeping - http://oss.oetiker.ch/smokeping/
 sed -i -e "s/^SMOKEPING_DIR\s.*/SMOKEPING_DIR => \'\/usr\/local\/netdot\/export\/smokeping\',/g" "$configfile"
 
-
 #################################################################
 # Wait for MYSQL server availability
 while ! exec 6<>/dev/tcp/$MYSQL_PORT_3306_TCP_ADDR/$MYSQL_PORT_3306_TCP_PORT 
@@ -77,20 +91,29 @@ done
 
 #################################################################
 # Install database if not done
+configfile="etc/Site.conf"
+
 if [ ! -f /srv/netdotdbinitdone ];
 then
     cd /srv/netdot* && \
-    sed -i -e "s/^DB_TYPE\s.*/DB_TYPE => \'mysql\',/g" etc/Site.conf && \
-    sed -i -e "s/^DB_HOME\s.*/DB_HOME => \'\/usr\',/g" etc/Site.conf && \
-    sed -i -e "s/^DB_DBA\s.*/DB_DBA => \'root\',/g" etc/Site.conf && \
-    sed -i -e "s/^DB_DBA_PASSWORD\s.*/DB_DBA_PASSWORD => \'$MYSQL_ENV_MYSQL_ROOT_PASSWORD\',/g" etc/Site.conf && \
-    sed -i -e "s/^DB_HOST\s.*/DB_HOST => \'$MYSQL_PORT_3306_TCP_ADDR\',/g" etc/Site.conf && \
-    sed -i -e "s/^DB_PORT\s.*/DB_PORT => \'$MYSQL_PORT_3306_TCP_PORT\',/g" etc/Site.conf && \
-    sed -i -e "s/^DB_NETDOT_HOST\s.*/DB_NETDOT_HOST => \'\%\',/g" etc/Site.conf && \
-    sed -i -e "s/^DB_DATABASE\s.*/DB_DATABASE => \'netdot\',/g" etc/Site.conf && \
-    sed -i -e "s/^DB_NETDOT_USER\s.*/DB_NETDOT_USER => \'netdot_user\',/g" etc/Site.conf && \
-    sed -i -e "s/^DB_NETDOT_PASS\s.*/DB_NETDOT_PASS => \'netdot_pass\',/g" etc/Site.conf && \
-    make installdb && \
+    sed -i -e "s/^DB_TYPE\s.*/DB_TYPE => \'mysql\',/g"  "$configfile" && \
+    sed -i -e "s/^DB_HOME\s.*/DB_HOME => \'\/usr\',/g"  "$configfile" && \
+    sed -i -e "s/^DB_DBA\s.*/DB_DBA => \'root\',/g"  "$configfile" && \
+    sed -i -e "s/^DB_DBA_PASSWORD\s.*/DB_DBA_PASSWORD => \'$MYSQL_ENV_MYSQL_ROOT_PASSWORD\',/g"  "$configfile" && \
+    sed -i -e "s/^DB_HOST\s.*/DB_HOST => \'$MYSQL_PORT_3306_TCP_ADDR\',/g"  "$configfile" && \
+    sed -i -e "s/^DB_PORT\s.*/DB_PORT => \'$MYSQL_PORT_3306_TCP_PORT\',/g"  "$configfile" && \
+    sed -i -e "s/^DB_NETDOT_HOST\s.*/DB_NETDOT_HOST => \'\%\',/g"  "$configfile" && \
+    sed -i -e "s/^DB_DATABASE\s.*/DB_DATABASE => \'netdot\',/g"  "$configfile" && \
+    sed -i -e "s/^DB_NETDOT_USER\s.*/DB_NETDOT_USER => \'netdot_user\',/g"  "$configfile" && \
+    sed -i -e "s/^DB_NETDOT_PASS\s.*/DB_NETDOT_PASS => \'netdot_pass\',/g"  "$configfile" && \
+    if [ ! -f bin/oui.txt ] ;
+    then
+        sed -i "/.*oui.txt.*/s/^/#/" bin/Makefile && \
+        make installdb && \
+        sed -i "/^#.*oui.txt.*/s/^#//" bin/Makefile
+    else
+    	make installdb
+    fi  && \
     echo "GRANT ALL ON netdot.* TO netdot_user@'%' IDENTIFIED BY 'netdot_pass' WITH GRANT OPTION; FLUSH PRIVILEGES" | \
     mysql -uroot -p$MYSQL_ENV_MYSQL_ROOT_PASSWORD -h$MYSQL_PORT_3306_TCP_ADDR && \
     touch /srv/netdotdbinitdone
@@ -106,9 +129,27 @@ service apache2 start
 a2ensite netdot.conf
 # Reload apache2
 service apache2 reload
+
 #################################################################
-# Watch /usr/local/netdot/etc/ for changes, reload apache2 if changed
-while :
-    do
-        inotify-hookable -w /usr/local/netdot/etc/ -c 'service apache2 reload && date >> /srv/reloadconfig.log'
+# Watch directories for changes, reload apache2 and fix permissions if changed
+while : ; do
+    inotify-hookable \
+        --watch-directories /usr/local/netdisco/mibs/ \
+        --watch-directories /usr/local/netdot/etc/ \
+        --watch-directories /usr/local/netdot/export/ \
+        --on-modify-path-command "( \
+        	    /usr/local/netdisco/mibs/ \
+        	| \
+        	    /usr/local/netdot/etc/ \
+            )=( \
+                service apache2 reload && \
+                chmod -R 777 /usr/local/netdisco/mibs/ && \
+                chmod -R 777 /usr/local/netdot/etc/ && \
+                date >> /srv/reloadconfig.log \
+            )" \
+        --on-modify-path-command "( \
+                /usr/local/netdot/export/ \
+            )=( \
+                chmod -R 777 /usr/local/netdot/export/ \
+            )"
 done
