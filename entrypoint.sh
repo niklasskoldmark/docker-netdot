@@ -3,16 +3,22 @@
 # Set variables
 netdotpath="/usr/local/netdot"
 configfile="$netdotpath/etc/Site.conf"
-#configfile="/srv/netdot-1.0.7/etc/Site.conf"
 
 #################################################################
 # Setup postfix
-postconf -e relayhost="$POSTFIX_RELAY_PORT_25_TCP_ADDR"
+postconf -e relayhost="${POSTFIX_RELAY_PORT_25_TCP_ADDR:=$relayhost}"
 
 #################################################################
 # If /usr/local/netdot/etc/ is empty (mounted volume), copy the initial netdot configs
-[ ! "$(ls -A /usr/local/netdot/etc/ )" ] && \
-cp -R /usr/local/netdot/etcbck/* /usr/local/netdot/etc/
+#[ ! "$(ls -A /usr/local/netdot/etc/ )" ] && cp -R $netdotpath/etcbck/* $netdotpath/etc/
+
+# If /usr/local/netdot/etc/Site.conf doesnt exist (mounted volume), copy the initial Site.conf
+[ ! -f /usr/local/netdot/etc/Site.conf ] && \
+    cp $netdotpath/etcbck/Site.conf /usr/local/netdot/etc/Site.conf
+
+# If /usr/local/netdot/etc/running_apache.conf (mounted volume), copy the initial running_apache.conf
+[ ! -f /usr/local/netdot/etc/running_apache.conf ] && \
+    cp $netdotpath/etcbck/netdot_apache24_local.conf /usr/local/netdot/etc/running_apache.conf
 
 #################################################################
 # If /usr/local/netdisco/mibs/ is empty (mounted volume), copy the initial mibs
@@ -22,13 +28,13 @@ cp -R /usr/local/netdisco/mibsbck/* /usr/local/netdisco/mibs/
 #################################################################
 # If /usr/local/netdot/export/cacti/ is empty (mounted volume), copy the initial cacti configs
 [ ! "$(ls -A /usr/local/netdot/export/cacti/ )" ] && \
-cp -R /usr/local/netdot/export/cactibck/* /usr/local/netdot/export/cacti/
+cp -R $netdotpath/export/cactibck/* $netdotpath/export/cacti/
 
 #################################################################
 # Fix access
 chmod -R 777 /usr/local/netdisco/mibs/ && \
-chmod -R 777 /usr/local/netdot/etc/ && \
-chmod -R 777 /usr/local/netdot/export
+chmod -R 777 $netdotpath/etc/ && \
+chmod -R 777 $netdotpath/export
 
 #################################################################
 # Fix /usr/local/netdot/etc/Site.conf
@@ -106,7 +112,7 @@ then
     sed -i -e "s/^DB_DATABASE\s.*/DB_DATABASE => \'netdot\',/g"  "$configfile" && \
     sed -i -e "s/^DB_NETDOT_USER\s.*/DB_NETDOT_USER => \'netdot_user\',/g"  "$configfile" && \
     sed -i -e "s/^DB_NETDOT_PASS\s.*/DB_NETDOT_PASS => \'netdot_pass\',/g"  "$configfile" && \
-    if [ ! -f bin/oui.txt ] ;
+    if [ -f bin/oui.txt ] ;
     then
         sed -i "/.*oui.txt.*/s/^/#/" bin/Makefile && \
         make installdb && \
@@ -131,25 +137,31 @@ a2ensite netdot.conf
 service apache2 reload
 
 #################################################################
-# Watch directories for changes, reload apache2 and fix permissions if changed
+# Watch directories for changes (exclude hidden directories), reload apache2 if changed
 while : ; do
-    inotify-hookable \
-        --watch-directories /usr/local/netdisco/mibs/ \
-        --watch-directories /usr/local/netdot/etc/ \
-        --watch-directories /usr/local/netdot/export/ \
-        --on-modify-path-command "( \
-        	    /usr/local/netdisco/mibs/ \
-        	| \
-        	    /usr/local/netdot/etc/ \
-            )=( \
-                service apache2 reload && \
-                chmod -R 777 /usr/local/netdisco/mibs/ && \
-                chmod -R 777 /usr/local/netdot/etc/ && \
-                date >> /srv/reloadconfig.log \
-            )" \
-        --on-modify-path-command "( \
-                /usr/local/netdot/export/ \
-            )=( \
-                chmod -R 777 /usr/local/netdot/export/ \
-            )"
+    inotifywait \
+    --recursive \
+    --timefmt '%d/%m/%y/%H:%M' \
+    --format '%T %w%f' \
+    --event modify \
+    --event move \
+    --event create \
+    --exclude '/\..+' \
+    /usr/local/netdisco/mibs/ \
+    /usr/local/netdot/etc/running_apache.conf \
+    /usr/local/netdot/etc/Site.conf \
+    | while read time file; do
+        if service apache2 reload
+        then
+            echo "${time} apache2 reloaded because change in ${file}" >> /srv/reloadconfig.log
+            echo "${time} apache2 reloaded because change in ${file}"
+        else
+            a2dissite netdot.conf
+            service apache2 start
+            a2ensite netdot.conf
+            service apache2 reload
+            echo "${time} apache2 restarted because change in ${file}" >> /srv/reloadconfig.log
+            echo "${time} apache2 restarted because change in ${file}"
+        fi
+    done
 done

@@ -8,8 +8,9 @@ RUN apt-get update && \
     -y \
         apache2 \
         build-essential \
+        curl \
         graphviz \
-        inotify-hookable \
+        inotify-tools \
         libapache-session-perl \
         libapache2-authcookie-perl \
         libapache2-mod-perl2 \
@@ -46,11 +47,10 @@ RUN apt-get update && \
         libtime-local-perl \
         liburi-perl \
         libxml-simple-perl \
+        mysql-client \
         postfix \
         rrdtool \
         snmp \
-        mysql-client \
-        curl \
     && \
     apt-get clean && \
     rm -rf /tmp/* && \
@@ -66,7 +66,7 @@ RUN cd /srv && \
     sed -i -e "s/mibs :.*/#mibs :/g" /etc/snmp/snmp.conf && \
     echo 'mibdirs +/usr/local/netdisco/mibs/' >> /usr/share/snmp/snmp.conf
 
-COPY ["oui.txt", "/srv/"]
+#COPY ["oui.txt", "/srv/"]
 
 RUN cd /srv && \
     curl -L "http://netdot.uoregon.edu/pub/dists/netdot-1.0.7.tar.gz" |tar zxvf - && \
@@ -78,7 +78,7 @@ RUN cd /srv && \
     make install APACHEUSER=www-data APACHEGROUP=www-data && \
     cp /usr/local/netdot/etc/netdot_apache24_local.conf /usr/local/netdot/etc/running_apache.conf && \
     ln -s /usr/local/netdot/etc/running_apache.conf /etc/apache2/sites-available/netdot.conf && \
-    mv /srv/oui.txt bin/
+    curl -Lo bin/oui.txt http://standards.ieee.org/regauth/oui/oui.txt 
 
 # Backup initial /usr/local/netdot/etc/
 RUN mkdir /usr/local/netdot/etcbck && \
