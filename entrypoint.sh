@@ -136,6 +136,7 @@ a2ensite netdot.conf
 # Reload apache2
 service apache2 reload
 
+
 #################################################################
 # Watch directories for changes (exclude hidden directories), reload apache2 if changed
 while : ; do
